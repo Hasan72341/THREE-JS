@@ -2,6 +2,7 @@ import * as THREE from "three";
 const canvas = document.getElementById("myCanvas");
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
 import vertexShader from "./shaders/vertex.glsl";
 import fragmentShader from "./shaders/fragment.glsl";
 import gsap from "gsap";
@@ -128,8 +129,9 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.xr.enabled = true; // enable WebXR
 
-// add VR button to enter/exit VR
+// add VR and AR buttons to enter sessions
 document.body.appendChild(VRButton.createButton(renderer));
+document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
 // simple controllers (left/right)
 const controller1 = renderer.xr.getController(0);
@@ -138,6 +140,26 @@ scene.add(controller1);
 const controller2 = renderer.xr.getController(1);
 controller2.name = 'controller-2';
 scene.add(controller2);
+
+// AR hit-test + reticle setup
+let hitTestSource = null;
+let hitTestSourceRequested = false;
+const reticle = new THREE.Mesh(
+  new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
+  new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+);
+reticle.matrixAutoUpdate = false;
+reticle.visible = false;
+scene.add(reticle);
+
+function onSelect() {
+  if (reticle.visible) {
+    nMesh.position.setFromMatrixPosition(reticle.matrix);
+    nMesh.visible = true;
+  }
+}
+controller1.addEventListener('select', onSelect);
+controller2.addEventListener('select', onSelect);
 
 // handle resize
 window.addEventListener('resize', () => {
@@ -148,10 +170,40 @@ window.addEventListener('resize', () => {
 });
 
 // XR-friendly render loop
-renderer.setAnimationLoop(() => {
-  // update controls only when not in VR
+renderer.setAnimationLoop((time, xrFrame) => {
+  // update controls only when not in XR
   if (!renderer.xr.isPresenting) controls.update();
 
-  // standard render
+  const session = renderer.xr.getSession && renderer.xr.getSession();
+  if (session && xrFrame) {
+    const referenceSpace = renderer.xr.getReferenceSpace();
+
+    if (!hitTestSourceRequested) {
+      session.requestReferenceSpace('viewer').then((refSpace) => {
+        session.requestHitTestSource({ space: refSpace }).then((source) => {
+          hitTestSource = source;
+        });
+      });
+      session.addEventListener('end', () => {
+        hitTestSourceRequested = false;
+        hitTestSource = null;
+        reticle.visible = false;
+      });
+      hitTestSourceRequested = true;
+    }
+
+    if (hitTestSource) {
+      const hitTestResults = xrFrame.getHitTestResults(hitTestSource);
+      if (hitTestResults.length > 0) {
+        const hit = hitTestResults[0];
+        const pose = hit.getPose(referenceSpace);
+        reticle.visible = true;
+        reticle.matrix.fromArray(pose.transform.matrix);
+      } else {
+        reticle.visible = false;
+      }
+    }
+  }
+
   renderer.render(scene, camera);
 });
