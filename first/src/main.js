@@ -110,8 +110,7 @@ let isAnimating = false;
 if (button) button.style.display = 'block';
 
 button.addEventListener('click', () => {
-  // Only allow toggle when in AR session
-  if (!renderer.xr.isPresenting) return;
+  console.log('toggle clicked, xrPresenting=', renderer.xr.isPresenting);
   if (isAnimating) return; // Prevent multiple clicks during animation
 
   isAnimating = true;
