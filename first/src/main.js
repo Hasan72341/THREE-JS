@@ -116,7 +116,7 @@ button.addEventListener('click', () => {
   isAnimating = true;
   const currentValue = nMesh.material.uniforms.uProgress.value;
   const targetValue = currentValue === 0 ? 1 : 0;
-  const targetScale = targetValue === 1 ? 1.2 : 0.6;
+  const targetScale = targetValue === 1 ? 0.4 : 0.6;
 
   // animate morph
   gsap.to(nMesh.material.uniforms.uProgress, {
