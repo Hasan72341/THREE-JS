@@ -75,6 +75,8 @@ const cylinderPositions = samplePoints(cylinderGeo, 50000);
 const geometry = new THREE.BufferGeometry();                                          
 geometry.setAttribute('position', new THREE.BufferAttribute(spherePositions, 3));
 geometry.setAttribute('aPosition', new THREE.BufferAttribute(cylinderPositions, 3));
+// compute bounding sphere so we know the mesh size
+geometry.computeBoundingSphere();
 
 
 
@@ -166,10 +168,24 @@ reticle.visible = false;
 scene.add(reticle);
 
 function onSelect() {
-  if (reticle.visible) {
-    nMesh.position.setFromMatrixPosition(reticle.matrix);
-    nMesh.visible = true;
-  }
+  if (!reticle.visible) return;
+
+  // pick a position along the camera->reticle vector so camera stays outside the mesh
+  const reticlePos = new THREE.Vector3().setFromMatrixPosition(reticle.matrix);
+  const cameraPos = new THREE.Vector3();
+  camera.getWorldPosition(cameraPos);
+
+  // ensure we have a bounding radius for the geometry
+  const radius = (geometry.boundingSphere && geometry.boundingSphere.radius) ? geometry.boundingSphere.radius * Math.max(nMesh.scale.x, nMesh.scale.y, nMesh.scale.z) : 1.0;
+  const padding = 0.5; // meters of padding between camera and mesh surface
+  const desiredDistance = radius + padding;
+
+  // direction from camera to reticle
+  const dir = reticlePos.clone().sub(cameraPos).normalize();
+  const targetPos = cameraPos.clone().add(dir.multiplyScalar(desiredDistance));
+
+  nMesh.position.copy(targetPos);
+  nMesh.visible = true;
 }
 controller1.addEventListener('select', onSelect);
 controller2.addEventListener('select', onSelect);
