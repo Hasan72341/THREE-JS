@@ -104,6 +104,7 @@ const nMesh = new THREE.Points(geometry, material)
 scene.add(nMesh)
 
 const button = document.getElementById('toggleButton');
+console.log('toggle button element found:', !!button);
 let isAnimating = false;
 // show toggle by default for easier testing (visible outside AR)
 if (button) button.style.display = 'block';
