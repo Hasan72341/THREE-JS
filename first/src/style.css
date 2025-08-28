@@ -1,0 +1,33 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+}
+
+#myCanvas {
+  display: block;
+}
+
+#toggleButton {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: 1px solid white;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+}
+
+#toggleButton:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
