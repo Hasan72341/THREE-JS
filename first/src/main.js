@@ -1,9 +1,12 @@
 import * as THREE from "three";
 const canvas = document.getElementById("myCanvas");
 import { OrbitControls } from "three/examples/jsm/Addons.js";
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import vertexShader from "./shaders/vertex.glsl";
 import fragmentShader from "./shaders/fragment.glsl";
 import gsap from "gsap";
+import texture from "/snow-8433815_1920.jpg"
+import { TextureLoader } from "three";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -73,6 +76,12 @@ const geometry = new THREE.BufferGeometry();
 geometry.setAttribute('position', new THREE.BufferAttribute(spherePositions, 3));
 geometry.setAttribute('aPosition', new THREE.BufferAttribute(cylinderPositions, 3));
 
+
+
+const textureLoader = new TextureLoader();
+const snowTexture = textureLoader.load(texture);
+
+
 const material = new THREE.ShaderMaterial({
   vertexShader,
   fragmentShader,
@@ -80,7 +89,8 @@ const material = new THREE.ShaderMaterial({
     uTime: { value: 0.0 },
     uProgress: { value: 0.0 },
     uResolution: { value: new THREE.Vector2(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio) },
-    uSize: { value: 0.03}
+    uSize: { value: 0.03},
+    uTexture: { value: snowTexture }
   },
   side: THREE.DoubleSide,
   blending : THREE.AdditiveBlending,
@@ -113,14 +123,35 @@ button.addEventListener('click', () => {
 
 nMesh.scale.set(0.6, 0.6, 0.6);
 
-const renderer = new THREE.WebGLRenderer({ canvas });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);  
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.xr.enabled = true; // enable WebXR
 
-const tick = () => {
-  window.requestAnimationFrame(tick);
+// add VR button to enter/exit VR
+document.body.appendChild(VRButton.createButton(renderer));
+
+// simple controllers (left/right)
+const controller1 = renderer.xr.getController(0);
+controller1.name = 'controller-1';
+scene.add(controller1);
+const controller2 = renderer.xr.getController(1);
+controller2.name = 'controller-2';
+scene.add(controller2);
+
+// handle resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+});
+
+// XR-friendly render loop
+renderer.setAnimationLoop(() => {
+  // update controls only when not in VR
+  if (!renderer.xr.isPresenting) controls.update();
+
+  // standard render
   renderer.render(scene, camera);
-  controls.update();
-};
-
-tick();
+});
