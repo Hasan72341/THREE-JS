@@ -1,7 +1,6 @@
 import * as THREE from "three";
 const canvas = document.getElementById("myCanvas");
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
 import vertexShader from "./shaders/vertex.glsl";
 import fragmentShader from "./shaders/fragment.glsl";
@@ -104,20 +103,35 @@ scene.add(nMesh)
 
 const button = document.getElementById('toggleButton');
 let isAnimating = false;
+// hide button until AR session is active
+if (button) button.style.display = 'none';
 
 button.addEventListener('click', () => {
+  // Only allow toggle when in AR session
+  if (!renderer.xr.isPresenting) return;
   if (isAnimating) return; // Prevent multiple clicks during animation
-  
+
   isAnimating = true;
   const currentValue = nMesh.material.uniforms.uProgress.value;
   const targetValue = currentValue === 0 ? 1 : 0;
-  
+  const targetScale = targetValue === 1 ? 1.2 : 0.6;
+
+  // animate morph
   gsap.to(nMesh.material.uniforms.uProgress, {
     value: targetValue,
     duration: 2,
-    ease: "power2.inOut",
+    ease: 'power2.inOut'
+  });
+
+  // animate scale together
+  gsap.to(nMesh.scale, {
+    x: targetScale,
+    y: targetScale,
+    z: targetScale,
+    duration: 2,
+    ease: 'power2.inOut',
     onComplete: () => {
-      isAnimating = false; // Allow next animation
+      isAnimating = false;
     }
   });
 });
@@ -129,8 +143,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.xr.enabled = true; // enable WebXR
 
-// add VR and AR buttons to enter sessions
-document.body.appendChild(VRButton.createButton(renderer));
+// add AR button to enter AR sessions (AR-only)
 document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
 // simple controllers (left/right)
@@ -182,12 +195,16 @@ renderer.setAnimationLoop((time, xrFrame) => {
       session.requestReferenceSpace('viewer').then((refSpace) => {
         session.requestHitTestSource({ space: refSpace }).then((source) => {
           hitTestSource = source;
+          // show toggle when AR hit-test is available
+          if (button) button.style.display = 'block';
         });
       });
       session.addEventListener('end', () => {
         hitTestSourceRequested = false;
         hitTestSource = null;
         reticle.visible = false;
+        // hide toggle when AR session ends
+        if (button) button.style.display = 'none';
       });
       hitTestSourceRequested = true;
     }
