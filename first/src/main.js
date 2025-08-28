@@ -105,8 +105,8 @@ scene.add(nMesh)
 
 const button = document.getElementById('toggleButton');
 let isAnimating = false;
-// hide button until AR session is active
-if (button) button.style.display = 'none';
+// show toggle by default for easier testing (visible outside AR)
+if (button) button.style.display = 'block';
 
 button.addEventListener('click', () => {
   // Only allow toggle when in AR session
